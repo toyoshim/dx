@@ -7,11 +7,13 @@
 #include <unistd.h>
 #include <signal.h>
 #include <setjmp.h>
+#include <getopt.h>
 #include "i86intrf.h"
 #include "process.h"
 #include "memory.h"
 #include "int.h"
 #include "file.h"
+#include "build.h"
 #include "debug.h"
 
 extern unsigned char *memory;
@@ -28,6 +30,22 @@ sig_int(int arg)
 #endif /* !_DEBUG */
 }
 
+void
+help(int rc, int argc, char **argv)
+{
+	fprintf(stderr, "%s build %d\n", "Dos eXecution environment for BeOS/POSIX", BUILD);
+	fprintf(stderr, "\tcompiled on %s(%s)\n\n", HOSTNAME, MACHTYPE);
+	fprintf(stderr, "%s", "This program make run DOS 16bit programs\n");
+	fprintf(stderr, "%s", "in your platform.\n");
+	fprintf(stderr, "\nUsage: %s [options] <command> [<cmd opts>...]\n", argv[0]);
+	fprintf(stderr, "%s", "Options:\n");
+	fprintf(stderr, "%s", "  -h, --help	show this message\n");
+	fprintf(stderr, "\nReport bugs to <toyoshim@be-in.org>.\n");
+	fprintf(stderr, "For other information visit to following URL\n");
+	fprintf(stderr, "\thttp://www.tk.xaxon.ne.jp/~toyoshim/beos/dx/\n");
+	exit(rc);
+}
+
 int
 main(int argc, char **argv, char **env)
 {
@@ -40,18 +58,38 @@ main(int argc, char **argv, char **env)
 	unsigned char cmd[128];
 	int offset;
 	char *p;
+	struct option options[] = {
+		{ "help", 0, NULL, 'h' },
+	};
+	int farg = 0;
+	const char *fname;
 
-	const char *fname = file_search(argv[1]);
+	/* options */
+	while (0 == farg) {
+		switch (getopt_long(argc, argv, "h", options, NULL)) {
+		case 'h':	// help
+			help(0, argc, argv);
+		case ':':	// arg not found
+		case '?':	// unknown
+			help(1, argc, argv);
+		case -1:	// end
+			if (optind < argc) farg = optind;
+			else help(1, argc, argv);
+			break;
+		}
+	}
+
+	fname = file_search(argv[farg]);
 	if (NULL == fname) {
-		char *exename = malloc(strlen(argv[1]) + 4 + 1);
+		char *exename = malloc(strlen(argv[farg]) + 4 + 1);
 		if (NULL != exename) {
-			strcpy(exename, argv[1]);
+			strcpy(exename, argv[farg]);
 			strcat(exename, ".exe");
 			fname = file_search(exename);
 			free(exename);
 		}
 		if (NULL == fname) {
-			fprintf(stderr, "command not found: %s\n", argv[1]);
+			fprintf(stderr, "command not found: %s\n", argv[farg]);
 			exit(1);
 		}
 	}
@@ -107,7 +145,7 @@ main(int argc, char **argv, char **env)
 
 	/* cmd */
 	offset = 0x01;
-	for (i = 2; i < argc; i++) {
+	for (i = farg + 1; i < argc; i++) {
 		if (offset == 0x7f) break;
 		for (p = argv[i]; (*p != 0) && (offset != 0x7f); offset++) {
 			cmd[offset] = *p++;

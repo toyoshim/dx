@@ -15,7 +15,8 @@ else
 	WORK	= _Release
 endif
 CC	= gcc
-DEFINES	+= -D__BeOS__ -D__DX__ -DLSB_FIRST
+DEFINES	+= -D__BeOS__ -D__DX__ -DLSB_FIRST \
+	-DMACHTYPE=\"$(MACHTYPE)\" -DHOSTNAME=\"$(HOSTNAME)\"
 CFLAGS	+= -c -O9 $(DEFINES) -I$(PWD) -I$(PWD)/i86 -I$(PWD)/mame_inc
 OBJECTS	+= $(WORK)/main.o $(WORK)/i86.o $(WORK)/memory.o $(WORK)/int.o $(WORK)/int21.o $(WORK)/int21_43.o $(WORK)/int21_44.o $(WORK)/int1a.o $(WORK)/file.o $(WORK)/process.o 
 INSTALL	= install
@@ -32,13 +33,20 @@ $(TARGET): $(WORK) $(OBJECTS)
 $(WORK):
 	$(INSTALL) -d $(WORK)
 
+build: $(WORK)
+	echo build number inc...
+	expr `cat build` + 1 > build
+
+build.h: build
+	echo "#define BUILD	"`cat build` > build.h
+
 $(WORK)/i86.o: i86 mame_inc memory.h
 	$(CC) $(CFLAGS) -o $@ i86/i86.c
 
 $(WORK)/i86dasm.o: i86
 	$(CC) $(CFLAGS) -o $@ i86/i86dasm.c
 
-$(WORK)/main.o: main.c i86info.h
+$(WORK)/main.o: main.c i86info.h build.h
 	$(CC) $(CFLAGS) -o $@ main.c
 
 $(WORK)/int.o: int.c int.h
