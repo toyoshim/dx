@@ -23,11 +23,22 @@ CFLAGS	+= -c -O9 $(DEFINES) -I$(PWD) -I$(PWD)/i86 -I$(PWD)/mame_inc
 OBJECTS	+= $(WORK)/main.o $(WORK)/i86.o $(WORK)/memory.o $(WORK)/int.o $(WORK)/int21.o $(WORK)/int21_43.o $(WORK)/int21_44.o $(WORK)/int1a.o $(WORK)/file.o $(WORK)/process.o 
 INSTALL	= install
 RMRF	= rm -rf
+PREFIX	= /boot/home/config
+BINPRFX	= $(PREFIX)/bin
 
 all: $(TARGET)
 
 clean:
 	$(RMRF) $(WORK)
+
+install: $(TARGET) $(BINPRFX)
+	cp -f $(TARGET) $(BINPRFX)
+
+$(BINPRFX): $(PREFIX)
+	$(INSTALL) -d $(BINPRFX)
+
+$(PREFIX):
+	$(INSTALL) -d $(PREFIX)
 
 $(TARGET): $(WORK) $(OBJECTS)
 	$(CC) $(LFLAGS) -o $(TARGET) $(OBJECTS)
