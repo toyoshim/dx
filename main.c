@@ -59,6 +59,7 @@ main(int argc, char **argv, char **env)
 	char *p;
 	struct option options[] = {
 		{ "help", 0, NULL, 'h' },
+		{ NULL, 0, NULL, 0 },
 	};
 	int farg = 0;
 	const char *fname;

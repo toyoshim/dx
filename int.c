@@ -15,7 +15,7 @@ int_hook(int no, void *_regs)
 	case 0x1a:	int1a((i86_Regs *)regs);		break;
 	case 0x21:	int21((i86_Regs *)regs);		break;
 	case 0x29:	int29((i86_Regs *)regs);		break;
-	default:	fprintf(stderr, "INT %02X\n", no);	exit(1);
+	default:	fprintf(stderr, "INT %02X\n", no);	break;
 	}
 }
 
