@@ -21,6 +21,7 @@
 typedef struct fd_info{
 	int fd;
 	int mode;
+	int buf;
 } fd_info;
 
 static fd_info *fds = NULL;
@@ -84,13 +85,17 @@ file_init(int num)
 	memset(fds, 0, sizeof(fd_info) * num);
 	fds[0].fd = STDIN_FILENO;
 	fds[0].mode = 0x5181;
+	fds[0].buf = -1;
 	fds[1].fd = STDOUT_FILENO;
 	fds[1].mode = 0x5182;
+	fds[1].buf = -1;
 	fds[2].fd = STDERR_FILENO;
 	fds[2].mode = 0x5180;
+	fds[2].buf = -1;
 	for (i = 3; i < num; i++) {
 		fds[i].fd = -1;
 		fds[i].mode = 0;
+		fds[i].buf = -1;
 	}
 	last_fd = 2;
 	max_fd = num - 1;
@@ -122,6 +127,7 @@ file_create(const char *fname, int attr)
 	}
 	fds[fd].fd = rc;
 	fds[fd].mode = 0x0800; /* A: */
+	fds[fd].buf = -1;
 	last_fd = fd;
 	return fd;
 }
@@ -190,6 +196,7 @@ file_open(const char *_fname, int mode)
 	}
 	fds[fd].fd = rc;
 	fds[fd].mode = 0x0800; /* A: */
+	fds[fd].buf = -1;
 	last_fd = fd;
 	return fd;
 }
@@ -202,6 +209,7 @@ file_close(int fd)
 	rc = close(fds[fd].fd);
 	fds[fd].fd = -1;
 	fds[fd].mode = 0;
+	fds[fd].buf = -1;
 	if (last_fd == fd) last_fd--;
 	if (rc < 0) ERR_INVALID_HANDLE;
 	return 0;
@@ -251,6 +259,7 @@ file_dup2(int srcfd, int dstfd)
 	}
 	fds[dstfd].fd = rc;
 	fds[dstfd].mode = fds[srcfd].mode;	/* TODO */
+	fds[dstfd].buf = 0;			/* TODO */
 	return dstfd;
 }
 
@@ -284,7 +293,17 @@ file_read(int fd, void *data, size_t size)
 		printf("invalid file descriptor: %d\n", fd);
 		return ERR_INVALID_HANDLE;
 	}
-	rc = read(fds[fd].fd, data, size);
+	if (fds[fd].buf >= 0) {
+		rc = 0;
+		if (size > 0) {
+			((unsigned char *)data)[0] = fds[fd].buf;
+			fds[fd].buf = -1;
+			if (size > 1) rc = read(fds[fd].fd, data + 1, size - 1);
+			else rc = 1;
+		}
+	} else {
+		rc = read(fds[fd].fd, data, size);
+	}
 	if (rc < 0) {
 		printf("file_read: failed(%d)\n", errno);
 		switch (errno) {
@@ -319,8 +338,28 @@ file_seek(int fd, int offset, int from)
 		default:
 			return ERR_INVALID_FUNC_NUM;
 		}
+	} else {
+		fds[fd].buf = -1;
 	}
 	return rc;
+}
+
+int
+file_is_readable(int _fd)
+{
+	int old_flag;
+	int fd = fds[_fd].fd;
+	unsigned char dt;
+	int size;
+	if (fd < 0) return -1;
+	if (fds[fd].buf >= 0) return fds[fd].buf;
+	old_flag = fcntl(fd, F_GETFL);
+	fcntl(fd, F_SETFL, old_flag | O_NONBLOCK);
+	size = read(fd, &dt, 1);
+	fcntl(fd, F_SETFL, old_flag);
+	if (size <= 0) return -1;
+	fds[fd].buf = dt;
+	return dt;
 }
 
 int
@@ -415,6 +454,12 @@ drwx -> atrb conv. rule
 	return rc;
 }
 
+int
+file_dos2native(int fd)
+{
+	return fds[fd].fd;
+}
+
 static char *file_search_result = NULL;
 
 const char *
@@ -505,4 +550,3 @@ fcb_parse(char **_pat, int opt, struct fcb *fcb)
 	*_pat = pat;
 	return 0;
 }
-

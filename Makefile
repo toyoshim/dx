@@ -20,7 +20,7 @@ DEFINES	+= -D__BeOS__ -D__DX__ -DLSB_FIRST \
 	-DMACHTYPE=\"$(MACHTYPE)\" -DHOSTNAME=\"$(HOSTNAME)\" \
 	-DBUILD=`cat build`
 CFLAGS	+= -c -O9 $(DEFINES) -I$(PWD) -I$(PWD)/i86 -I$(PWD)/mame_inc
-OBJECTS	+= $(WORK)/main.o $(WORK)/i86.o $(WORK)/memory.o $(WORK)/int.o $(WORK)/int21.o $(WORK)/int21_43.o $(WORK)/int21_44.o $(WORK)/int1a.o $(WORK)/file.o $(WORK)/process.o 
+OBJECTS	+= $(WORK)/main.o $(WORK)/i86.o $(WORK)/memory.o $(WORK)/int.o $(WORK)/int21.o $(WORK)/int21_43.o $(WORK)/int21_44.o $(WORK)/int1a.o $(WORK)/int29.o $(WORK)/file.o $(WORK)/process.o 
 INSTALL	= install
 RMRF	= rm -rf
 PREFIX	= /boot/home/config
@@ -74,6 +74,9 @@ $(WORK)/int21_44.o: int21_44.c int.h
 
 $(WORK)/int1a.o: int1a.c int.h
 	$(CC) $(CFLAGS) -o $@ int1a.c
+
+$(WORK)/int29.o: int29.c int.h
+	$(CC) $(CFLAGS) -o $@ int29.c
 
 $(WORK)/memory.o: memory.c
 	$(CC) $(CFLAGS) -o $@ memory.c

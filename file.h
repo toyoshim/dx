@@ -14,9 +14,12 @@ int file_dup2(int srcfd, int dstfd);
 int file_write(int fd, void *data, size_t size);
 int file_read(int fd, void *data, size_t size);
 int file_seek(int fd, int offset, int from);
+int file_is_readable(int fd);
 int file_get_devinfo(int fd);
 int file_set_devinfo(int fd, int info);
 int file_attribute(const char *fname);
+
+int file_dos2native(int fd);
 
 const char *file_search(const char *name);
 

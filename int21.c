@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <string.h>
 #include <setjmp.h>
+#include <termios.h>
 #include "int.h"
 #include "file.h"
 #include "process.h"
@@ -21,6 +22,31 @@ TerminateProgram(i86_Regs *regs)
 	printf("TERMINATE PROGRAM\n");
 	jmpcode = 0;
 	longjmp(jmpdata, 1);
+}
+
+void
+DirectCharacterInputWithoutEcho(i86_Regs *regs)
+{
+	struct termios old_attr;
+	struct termios new_attr;
+	int fd = file_dos2native(STDOUT_FILENO);
+	unsigned char dt;
+	tcgetattr(fd, &old_attr);
+	new_attr = old_attr;
+	new_attr.c_lflag &= ~(ICANON | ECHO);
+	tcsetattr(fd, TCSANOW, &new_attr);
+	read(fd, &dt, 1);
+	tcsetattr(fd, TCSANOW, &old_attr);
+	REG_AL = dt;
+	printf("DIRECT CHARACTER INPUT WITHOUT ECHO => %02x\n", dt);
+}
+
+void
+GetStdinStatus(i86_Regs *regs)
+{
+	if (file_is_readable(STDOUT_FILENO) >= 0) REG_AL = 0xff;
+	else REG_AL = 0x00;
+	printf("GET STDIN STATUS => %02x\n", REG_AL);
 }
 
 void
@@ -311,6 +337,22 @@ ForceDuplicateFileHandle(i86_Regs *regs)
 }
 
 void
+GetCurrentDirectory(i86_Regs *regs)
+{
+	int drive = REG_DL;
+	int offset = WORD(REG_DS) * 16 + WORD(REG_SI);
+	char *buf = &memory[offset];
+	if (NULL == getcwd(buf, 64)) {
+		SET_CARRY;
+		REG_AX = WORD(5);
+	} else {
+		RESET_CARRY;
+		REG_AX = WORD(0x100);
+	}
+	printf("GET CURRENT DIRECTORY %d => %d(%s)\n", drive, WORD(REG_AX), buf);
+}
+
+void
 AllocateMemory(i86_Regs *regs)
 {
 	int nop = WORD(REG_BX);
@@ -436,7 +478,9 @@ int21(i86_Regs *regs)
 {
 	switch (REG_AH) {
 	case 0x00:	TerminateProgram(regs);			break;
+	case 0x07:	DirectCharacterInputWithoutEcho(regs);	break;
 	case 0x09:	WriteStringToStandardOutput(regs);	break;
+	case 0x0b:	GetStdinStatus(regs);			break;
 	case 0x0e:	SelectDefaultDrive(regs);		break;
 	case 0x19:	GetCurrentDefaultDrive(regs);		break;
 	case 0x1a:	SetDiskTransferAreaAddress(regs);	break;
@@ -458,6 +502,7 @@ int21(i86_Regs *regs)
 	case 0x43:	DosCall43h(regs);			break;
 	case 0x44:	DosCall44h(regs);			break;
 	case 0x46:	ForceDuplicateFileHandle(regs);		break;
+	case 0x47:	GetCurrentDirectory(regs);		break;
 	case 0x48:	AllocateMemory(regs);			break;
 	case 0x49:	FreeMemory(regs);			break;
 	case 0x4a:	ResizeMemoryBlock(regs);		break;
