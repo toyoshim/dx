@@ -11,6 +11,7 @@ ifeq ($(DEBUG), 1)
 #	DEFINES	+= -DVERBOSE_DEBUG
 	OBJECTS	= $(WORK)/i86dasm.o $(WORK)/debug.o
 else
+	LFLAGS += -Xlinker -s -Xlinker -x
 	TARGET	= dx
 	WORK	= _Release
 endif
@@ -28,7 +29,7 @@ clean:
 	$(RMRF) $(WORK)
 
 $(TARGET): $(WORK) $(OBJECTS)
-	$(CC) -o $(TARGET) $(OBJECTS)
+	$(CC) $(LFLAGS) -o $(TARGET) $(OBJECTS)
 
 $(WORK):
 	$(INSTALL) -d $(WORK)
