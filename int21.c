@@ -6,6 +6,7 @@
 #include <string.h>
 #include <setjmp.h>
 #include <termios.h>
+#include <errno.h>
 #include "int.h"
 #include "file.h"
 #include "process.h"
@@ -200,6 +201,36 @@ ExtendedBreakChecking(i86_Regs *regs)
 	}
 	printf("EXTENDED BREAK CHECKING (%d) => %d\n", func, rc);
 	REG_DL = rc;
+}
+
+void
+SetCurrentDirectory(i86_Regs *regs)
+{
+	int offset = WORD(REG_DS) * 16 + WORD(REG_DX);
+	void *path = &memory[offset];
+	int rc = 0;
+	if (chdir(path) == 0) {
+		RESET_CARRY;
+	} else {
+		switch (errno) {
+		case ENOMEM:
+			rc = 8;
+			break;
+		case EACCES:
+			rc = 5;
+		case EBADF:
+			rc = 6;
+		case ENAMETOOLONG:
+		case ENOENT:
+		case ENOTDIR:
+		case ELOOP:
+		default:
+			rc = 3;
+		}
+		SET_CARRY;
+		REG_AX = WORD(rc);
+	}
+	printf("SET CURRENT DIRECTORY => %d\n", rc);
 }
 
 void
@@ -492,6 +523,7 @@ int21(i86_Regs *regs)
 	case 0x35:	GetInterruptVector(regs);		break;
 	case 0x30:	GetDosVersion(regs);			break;
 	case 0x33:	ExtendedBreakChecking(regs);		break;
+	case 0x3b:	SetCurrentDirectory(regs);		break;
 	case 0x3c:	CreateOrTruncateFile(regs);		break;
 	case 0x3d:	OpenExistingFile(regs);			break;
 	case 0x3e:	CloseFile(regs);			break;
