@@ -17,7 +17,8 @@ else
 endif
 CC	= gcc
 DEFINES	+= -D__BeOS__ -D__DX__ -DLSB_FIRST \
-	-DMACHTYPE=\"$(MACHTYPE)\" -DHOSTNAME=\"$(HOSTNAME)\"
+	-DMACHTYPE=\"$(MACHTYPE)\" -DHOSTNAME=\"$(HOSTNAME)\" \
+	-DBUILD=`cat build`
 CFLAGS	+= -c -O9 $(DEFINES) -I$(PWD) -I$(PWD)/i86 -I$(PWD)/mame_inc
 OBJECTS	+= $(WORK)/main.o $(WORK)/i86.o $(WORK)/memory.o $(WORK)/int.o $(WORK)/int21.o $(WORK)/int21_43.o $(WORK)/int21_44.o $(WORK)/int1a.o $(WORK)/file.o $(WORK)/process.o 
 INSTALL	= install
@@ -31,15 +32,13 @@ clean:
 $(TARGET): $(WORK) $(OBJECTS)
 	$(CC) $(LFLAGS) -o $(TARGET) $(OBJECTS)
 
-$(WORK):
-	$(INSTALL) -d $(WORK)
-
 build: $(WORK)
 	echo build number inc...
 	expr `cat build` + 1 > build
 
-build.h: build
-	echo "#define BUILD	"`cat build` > build.h
+$(WORK):
+	$(INSTALL) -d $(WORK)
+
 
 $(WORK)/i86.o: i86 mame_inc memory.h
 	$(CC) $(CFLAGS) -o $@ i86/i86.c
@@ -47,7 +46,7 @@ $(WORK)/i86.o: i86 mame_inc memory.h
 $(WORK)/i86dasm.o: i86
 	$(CC) $(CFLAGS) -o $@ i86/i86dasm.c
 
-$(WORK)/main.o: main.c i86info.h build.h
+$(WORK)/main.o: main.c i86info.h build
 	$(CC) $(CFLAGS) -o $@ main.c
 
 $(WORK)/int.o: int.c int.h

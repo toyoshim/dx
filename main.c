@@ -13,7 +13,6 @@
 #include "memory.h"
 #include "int.h"
 #include "file.h"
-#include "build.h"
 #include "debug.h"
 
 extern unsigned char *memory;
